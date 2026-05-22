@@ -1,135 +1,196 @@
 <?php
 
 session_start();
-
 include 'connect.php';
+
+$message = "";
 
 if(isset($_POST['login'])){
 
-$email = $_POST['email'];
-$password = $_POST['password'];
+    $email = $_POST['email'];
+    $password = $_POST['password'];
 
-$stmt = $conn->prepare("SELECT * FROM student WHERE email=?");
+    $stmt = $conn->prepare("SELECT * FROM student WHERE email=?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
 
-$stmt->bind_param("s",$email);
+    $result = $stmt->get_result();
 
-$stmt->execute();
+    if($result->num_rows > 0){
 
-$result = $stmt->get_result();
+        $row = $result->fetch_assoc();
 
-if($result->num_rows > 0){
+        if(password_verify($password, $row['password'])){
 
-$row = $result->fetch_assoc();
+            $_SESSION['student_id'] = $row['student_id'];
+            $_SESSION['role'] = $row['role'];
+            $_SESSION['faculty'] = $row['faculty'];
 
-if(password_verify($password,$row['password'])){
+            if($row['role'] == 'admin'){
 
-$_SESSION['student_id'] = $row['student_id'];
-$_SESSION['role'] = $row['role'];
-$_SESSION['faculty'] = $row['faculty'];
+                header("Location: admin_dashboard.php");
 
-if($row['role'] == 'admin'){
+            }elseif($row['role'] == 'candidate'){
 
-header("Location: admin_dashboard.php");
+                header("Location: candidate_dashboard.php");
 
-}
-elseif($row['role'] == 'candidate'){
+            }else{
 
-header("Location: candidate_dashboard.php");
+                header("Location: voter_dashboard.php");
+            }
 
-}
-else{
+            exit();
 
-header("Location: voter_dashboard.php");
+        }else{
 
-}
+            $message = "Wrong Password!";
+        }
 
-exit();
+    }else{
 
-}else{
-
-echo "Wrong Password";
-
-}
-
-}else{
-
-echo "User Not Found";
-
-}
-
+        $message = "User Not Found!";
+    }
 }
 
 ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
-<title>LOGIN</title>
-<style type="text/css">
-<!--
-.style1 {color: #FFFFFF}
-.style2 {
-	color: #CCCCCC;
-	background-color: #000099;
-	background-position: center center;
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Login Page</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial, Helvetica, sans-serif;
 }
-#wrapper {	background-color: #0000FF;
+
+body{
+    background:linear-gradient(to right, #003366, #0066cc);
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
 }
-#wrapper #header #navbar a {
-	background-color: #FFFFFF;
+
+.login-box{
+    width:380px;
+    background:white;
+    padding:35px;
+    border-radius:12px;
+    box-shadow:0 5px 15px rgba(0,0,0,0.3);
 }
-#wrapper #header #studentreg {
-	background-color: #FFFFFF;
+
+.login-box h1{
+    text-align:center;
+    color:#003366;
+    margin-bottom:10px;
 }
-#wrapper #header #navbar a {
-	background-color: #FFFFFF;
+
+.login-box p{
+    text-align:center;
+    color:#666;
+    margin-bottom:25px;
 }
-#form1 .style2 {
-	background-color: #003300;
+
+.input-group{
+    margin-bottom:20px;
 }
-#form1 .style2 {
-	color: #FFFFFF;
-	background-color: #006600;
-	border-top-style: none;
-	border-right-style: none;
-	border-bottom-style: none;
-	border-left-style: none;
+
+.input-group label{
+    display:block;
+    margin-bottom:6px;
+    font-weight:bold;
+    color:#333;
 }
-#wrapper #header #navbar a {
-	background-color: #FF9900;
+
+.input-group input{
+    width:100%;
+    padding:12px;
+    border:1px solid #ccc;
+    border-radius:6px;
+    font-size:15px;
 }
-#wrapper #header #studentreg {
+
+.input-group input:focus{
+    border-color:#0066cc;
+    outline:none;
 }
-#wrapper #header #studentreg {
-	background-color: #FF9900;
+
+.btn{
+    width:100%;
+    padding:12px;
+    border:none;
+    background:#0066cc;
+    color:white;
+    font-size:16px;
+    border-radius:6px;
+    cursor:pointer;
+    transition:0.3s;
 }
--->
+
+.btn:hover{
+    background:#004c99;
+}
+
+.message{
+    text-align:center;
+    color:red;
+    margin-bottom:15px;
+    font-weight:bold;
+}
+
+.footer{
+    text-align:center;
+    margin-top:20px;
+    color:#777;
+    font-size:14px;
+}
+
 </style>
+
 </head>
+
 <body>
-<div id="wrapper">
-  <div class="style1" id="header">
-    <div align="center">
-      <p>GUILD ONLINE VOTING SYSTEM </p>
-      <div id="navbar">
-      </div>
-      <div class="style2" color=black id="studentreg">LOGIN PAGE  </div>
-      <p>&nbsp;</p>
+
+<div class="login-box">
+
+    <h1>Guild Voting System</h1>
+    <p>Login to continue</p>
+
+    <?php
+    if($message != ""){
+        echo "<div class='message'>$message</div>";
+    }
+    ?>
+
+    <form method="POST">
+
+        <div class="input-group">
+            <label>Email Address</label>
+            <input type="email" name="email" placeholder="Enter your email" required>
+        </div>
+
+        <div class="input-group">
+            <label>Password</label>
+            <input type="password" name="password" placeholder="Enter your password" required>
+        </div>
+
+        <input type="submit" name="login" value="Login" class="btn">
+
+    </form>
+
+    <div class="footer">
+        © 2026 Guild Online Voting System
     </div>
-  </div>
+
 </div>
-
-<h1>Login</h1>
-
-<form method="POST">
-
-Email:<input type="email"name="email"required>
-
-Password:<input type="password"name="password"required>
-<p align="center">
-<input type="submit"name="login"value="Login">
-</p>
-</form>
 
 </body>
 </html>
